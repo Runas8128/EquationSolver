@@ -18,13 +18,14 @@ def get_process_memory() -> int:
 
 class taskSolve(threading.Thread):
     def __init__(self, tarFunc: sympy.Expr, tarY: float, tarVar: sympy.Symbol):
-        super().__init__()
+        super().__init__(name="taskSolve")
 
         self.tarFunc = tarFunc
         self.tarY    = tarY
         self.tarVar  = tarVar
     
     def run(self, *args, **kwargs):
+        print(f"Trying to solve equation...")
         sol = sympy.solve(self.tarFunc - self.tarY, self.tarVar)
         print(f"Solve End! Solution: {sol}")
 
@@ -43,7 +44,10 @@ class taskTracker(threading.Thread):
         while self.t.is_alive():
             timeElapse = elapsed_since(self.startTime)
             memUsage = get_process_memory() - self.startMem
-            print(f"Thread `{self.t.getName()}`: memUsage: {memUsage/1024:.2f}MB, exec time: {timeElapse}")
+            print(
+                f"Thread `{self.t.getName()}`: memUsage: {memUsage/(1024**2):7.2f}MB, exec time: {timeElapse}",
+                end='\r'
+            )
 
 tSolve = taskSolve(
     tarFunc =
