@@ -38,16 +38,18 @@ async def solve(xy: Tuple[float, float]) -> float:
     
     반환값
     -------
-    * 0번 - 사용된 y값
-    * 1번 - 새로 구한 x값
+    * 0번 - 새로 구한 x값
+    * 1번 - 사용된 y값
+    * 2번 - 새로 구한 x값과 기존의 x값 간의 오차율 (단위: %)
     * 2번 - 새로 구한 x값을 대입했을 때 지정된 y값과의 오차율 (단위: %)
 
     ."""
 
     x, y = xy # Unpacking
     sol = sympy.nsolve(tarFunc - y, x, prec=2)
-    err = abs(tarFunc.subs('x', sol) - y) / y * 100
-    return y, sol, err
+    errx = abs(sol - x) / x * 100
+    erry = abs(tarFunc.subs('x', sol) - y) / y * 100
+    return sol, y, errx, erry
 
 async def main():
     """코루틴 함수입니다.
@@ -57,11 +59,12 @@ async def main():
     출력 형식은 y는 소수점 6자리까지, x와 오차율은 소수점 2자리 까지로 제한했습니다.
     """
 
-    result = ""
+    result  = "   x   |     y     |  err x  |  err y \n"
+    result += "----------------------------------------\n"
 
     for task in [asyncio.create_task(solve(xy)) for xy in xyPairs]:
-        y, x, err = await task
-        result += f"y={y:.6f} -> x={x:.2f} / error = {err:.2f}%\n"
+        x, y, errx, erry = await task
+        result += f"{x:6.2f} | {y:9.6f} | {errx:6.2f}% | {erry:6.2f}%\n"
     
     with open(".log", 'w', encoding='UTF-8') as f:
         f.write(result)
