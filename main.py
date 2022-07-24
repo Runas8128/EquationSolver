@@ -1,66 +1,39 @@
-import os
-import psutil
-import threading
-
-import time
+from typing import Tuple
+import asyncio
 import math
-
 import sympy
 
 x = sympy.Symbol('x')
 
-def elapsed_since(start: float) -> str:
-    return time.strftime("%H:%M:%S", time.gmtime(time.time() - start))
+xyPairs = [
+    (1.07, 0.13), (1.95, 0.24), (4.49, 0.63),
+    (0.45419084, 0.0511206), (0.910953947, 0.1182191), (1.841089735, 0.2548561), (4.523289946, 0.6488713),
+    (0.120992, 0.002174), (0.452847, 0.050923), (0.923075, 0.12), (1.953796, 0.271413), (2.406572, 0.337925),
+    (2.998893, 0.424937), (3.887818, 0.555521), (4.575872, 0.656596), (4.92211, 0.707458),
+    (0.121566, 0.002258), (0.495049, 0.057123), (1.001998, 0.131593), (1.916789, 0.265976), (2.528328, 0.355811),
+    (3.11354, 0.441779), (4.023965, 0.575521), (4.565218, 0.65503), (5.0796, 0.730593),
+    (0.116725782, 0.001547), (0.455792042, 0.051356), (0.993468605, 0.130341), (2.062574723, 0.287392), (2.565551008, 0.361279),
+    (2.941129162, 0.416452), (4.088939304, 0.585065), (4.384924147, 0.628545), (4.883804326, 0.701831)
+]
 
-def get_process_memory() -> int:
-    process = psutil.Process(os.getpid())
-    return process.memory_info().rss
+tarFunc: sympy.Expr = \
+    -0.91345 * (math.e ** (-x / 11.63286)) + \
+    -0.91354 * (math.e ** (-x / 14.21794)) + \
+    1.82708
 
-class taskSolve(threading.Thread):
-    def __init__(self, tarFunc: sympy.Expr, tarY: float, tarVar: sympy.Symbol):
-        super().__init__(name="taskSolve")
+async def solve(xy: Tuple[float, float]) -> float:
+    sol = sympy.nsolve(tarFunc - xy[1], xy[0], prec=2)
+    err = abs(tarFunc.subs('x', sol) - xy[1])
+    return xy[1], sol, err
 
-        self.tarFunc = tarFunc
-        self.tarY    = tarY
-        self.tarVar  = tarVar
+async def main():
+    result = ""
+
+    for task in [asyncio.create_task(solve(xy)) for xy in xyPairs]:
+        y, x, err = await task
+        result += f"y={y:.6f} -> x={x:.2f} / |f(x) - y| = {err:.2e}\n"
     
-    def run(self, *args, **kwargs):
-        print(f"Trying to solve equation...")
-        sol = sympy.solve(self.tarFunc - self.tarY, self.tarVar)
-        print(f"Solve End! Solution: {sol}")
+    with open(".log", 'w', encoding='UTF-8') as f:
+        f.write(result)
 
-class taskTracker(threading.Thread):
-    def __init__(self, trackThread: threading.Thread):
-        super().__init__()
-
-        self.t         = trackThread
-        self.startTime = 0
-        self.startMem  = 0
-
-    def run(self, *args, **kwargs):
-        self.startTime = time.time()
-        self.startMem  = get_process_memory()
-
-        while self.t.is_alive():
-            timeElapse = elapsed_since(self.startTime)
-            memUsage = get_process_memory() - self.startMem
-            print(
-                f"Thread `{self.t.getName()}`: memUsage: {memUsage/(1024**2):7.2f}MB, exec time: {timeElapse}",
-                end='\r'
-            )
-
-tSolve = taskSolve(
-    tarFunc =
-        -0.91345 * (math.e ** (-x / 11.63286)) + \
-        -0.91354 * (math.e ** (-x / 14.21794)) + \
-        1.82708,\
-    tarY    = 0.01,
-    tarVar  = x
-)
-
-tTrack = taskTracker(
-    trackThread=tSolve
-)
-
-tSolve.start()
-tTrack.start()
+asyncio.run(main())
