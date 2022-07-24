@@ -46,7 +46,7 @@ async def solve(xy: Tuple[float, float]) -> float:
     ."""
 
     x, y = xy # Unpacking
-    sol = sympy.nsolve(tarFunc - y, x, prec=2)
+    sol = sympy.nsolve(tarFunc - y, x, prec=6)
     errx = abs(sol - x) / x * 100
     erry = abs(tarFunc.subs('x', sol) - y) / y * 100
     return sol, y, errx, erry
@@ -59,12 +59,12 @@ async def main():
     출력 형식은 y는 소수점 6자리까지, x와 오차율은 소수점 2자리 까지로 제한했습니다.
     """
 
-    result  = "   x   |     y     |  err x  |  err y \n"
-    result += "----------------------------------------\n"
+    result  = "     x     |     y     |  err x  |  err y \n"
+    result += "------------------------------------------\n"
 
     for task in [asyncio.create_task(solve(xy)) for xy in xyPairs]:
         x, y, errx, erry = await task
-        result += f"{x:6.2f} | {y:9.6f} | {errx:6.2f}% | {erry:6.2f}%\n"
+        result += f"{x:9.6f} | {y:9.6f} | {errx:6.2f}% | {erry:6.2f}%\n"
     
     with open(".log", 'w', encoding='UTF-8') as f:
         f.write(result)
