@@ -23,7 +23,7 @@ class taskSolve(threading.Thread):
         self.tarVar  = tarVar
     
     def run(self, *args, **kwargs):
-        sol = sympy.solve(tarFunc - tarY, tarVar)
+        sol = sympy.solve(self.tarFunc - self.tarY, self.isAlivetarVar)
         print(f"Solve End! Solution: {sol}")
 
 class taskTracker(threading.Thread):
