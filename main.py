@@ -18,6 +18,8 @@ def get_process_memory() -> int:
 
 class taskSolve(threading.Thread):
     def __init__(self, tarFunc: sympy.Expr, tarY: float, tarVar: sympy.Symbol):
+        super().__init__()
+
         self.tarFunc = tarFunc
         self.tarY    = tarY
         self.tarVar  = tarVar
@@ -28,6 +30,8 @@ class taskSolve(threading.Thread):
 
 class taskTracker(threading.Thread):
     def __init__(self, trackThread: threading.Thread):
+        super().__init__()
+        
         self.t         = trackThread
         self.startTime = 0
         self.startMem  = 0
