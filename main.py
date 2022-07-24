@@ -1,14 +1,10 @@
 from typing import Tuple
 import asyncio
 import math
-import sympy
+from scipy.optimize import minimize
 
-x = sympy.Symbol('x')
-
-tarFunc: sympy.Expr = \
-    -0.50887 * (math.e ** (-x / 5.69574)) + \
-    -0.51858 * (math.e ** (-x / 5.69558)) + \
-    0.98065
+f = lambda x: -0.50887 * math.exp(-x/5.69574) - 0.51858 * math.exp(-x/5.69558) + 0.98065
+diff = lambda x, a: (f(x) - a) ** 2
 
 xyPairs = [
     (1.07, 0.13), (1.95, 0.24), (4.49, 0.63),
@@ -38,18 +34,12 @@ async def solve(xy: Tuple[float, float]) -> float:
     
     반환값
     -------
-    * 0번 - 새로 구한 x값
-    * 1번 - 사용된 y값
-    * 2번 - 새로 구한 x값과 기존의 x값 간의 오차율 (단위: %)
-    * 3번 - 새로 구한 x값을 대입했을 때 지정된 y값과의 오차율 (단위: %)
+    * 새로 구한 x값, 이 방정식에 쓰인 y값
 
     ."""
 
-    x, y = xy # Unpacking
-    sol = sympy.nsolve(tarFunc - y, x, prec=6)
-    errx = abs(sol - x) / x * 100
-    erry = abs(tarFunc.subs('x', sol) - y) / y * 100
-    return sol, y, errx, erry
+    sol = minimize(diff, 1.0, args=(xy[1]), tol=1e-6).x[0]
+    return sol, xy[1]
 
 async def main():
     """코루틴 함수입니다.
@@ -59,12 +49,11 @@ async def main():
     출력 형식은 y는 소수점 6자리까지, x와 오차율은 소수점 2자리 까지로 제한했습니다.
     """
 
-    result  = "     x     |     y     |  err x  |  err y \n"
-    result += "------------------------------------------\n"
+    result  = ""
 
     for task in [asyncio.create_task(solve(xy)) for xy in xyPairs]:
-        x, y, errx, erry = await task
-        result += f"{x:9.6f} | {y:9.6f} | {errx:6.2f}% | {erry:6.2f}%\n"
+        x, y = await task
+        result += f"{x}\n"
     
     with open(".log", 'w', encoding='UTF-8') as f:
         f.write(result)
